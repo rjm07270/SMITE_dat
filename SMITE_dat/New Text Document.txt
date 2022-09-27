@@ -1,0 +1,134 @@
+Account_Level: 100
+ActiveId1: 21572
+ActiveId2: 21545
+ActiveId3: 0
+ActiveId4: 0
+ActivePlayerId: 704744153
+Assists: 6
+Ban1:
+Ban10:
+Ban10Id: 0
+Ban11:
+Ban11Id: 0
+Ban12:
+Ban12Id: 0
+Ban1Id: 0
+Ban2:
+Ban2Id: 0
+Ban3:
+Ban3Id: 0
+Ban4:
+Ban4Id: 0
+Ban5:
+Ban5Id: 0
+Ban6:
+Ban6Id: 0
+Ban7:
+Ban7Id: 0
+Ban8:
+Ban8Id: 0
+Ban9:
+Ban9Id: 0
+Camps_Cleared: 0
+Conquest_Losses: 0
+Conquest_Points: 0
+Conquest_Tier: 0
+Conquest_Wins: 0
+Damage_Bot: 64141
+Damage_Done_In_Hand: 2135
+Damage_Done_Magical: 83208
+Damage_Done_Physical: 0
+Damage_Mitigated: 8055
+Damage_Player: 22183
+Damage_Taken: 16914
+Damage_Taken_Magical: 10287
+Damage_Taken_Physical: 6627
+Deaths: 3
+Distance_Traveled: 375830
+Duel_Losses: 0
+Duel_Points: 0
+Duel_Tier: 0
+Duel_Wins: 0
+Entry_Datetime: 7/6/2022 11:59:48 PM
+Final_Match_Level: 20
+First_Ban_Side:
+GodId: 1988
+Gold_Earned: 16063
+Gold_Per_Minute: 708
+Healing: 681
+Healing_Bot: 0
+Healing_Player_Self: 4614
+ItemId1: 19677
+ItemId2: 15582
+ItemId3: 18314
+ItemId4: 12670
+ItemId5: 7600
+ItemId6: 18180
+Item_Active_1: Purification Beads
+Item_Active_2: Aegis Amulet
+Item_Active_3:
+Item_Active_4:
+Item_Purch_1: Conduit Gem
+Item_Purch_2: Soul Gem
+Item_Purch_3: Evolved Charon's Coin
+Item_Purch_4: Spear of Desolation
+Item_Purch_5: Rod of Tahuti
+Item_Purch_6: Spear of the Magus
+Joust_Losses: 0
+Joust_Points: 0
+Joust_Tier: 0
+Joust_Wins: 0
+Killing_Spree: 7
+Kills_Bot: 137
+Kills_Double: 2
+Kills_Fire_Giant: 0
+Kills_First_Blood: 1
+Kills_Gold_Fury: 0
+Kills_Penta: 0
+Kills_Phoenix: 1
+Kills_Player: 10
+Kills_Quadra: 0
+Kills_Siege_Juggernaut: 0
+Kills_Single: 8
+Kills_Triple: 0
+Kills_Wild_Juggernaut: 0
+Map_Game: Joust 3v3
+Mastery_Level: 33
+Match: 1253648856
+Match_Duration: 1360
+MergedPlayers: None
+Minutes: 22
+Multi_kill_Max: 2
+Objective_Assists: 3
+PartyId: 1750694
+Rank_Stat_Conquest: 0
+Rank_Stat_Duel: 0
+Rank_Stat_Joust: 0
+Reference_Name: Scylla
+Region: NA-West
+Role: Unknown
+Skin: Living Death
+SkinId: 17669
+Structure_Damage: 941
+Surrendered: 0
+TaskForce: 1
+Team1Score: 0
+Team2Score: 0
+TeamId: 700364762
+Team_Name: Stellar Rise
+Time_Dead_Seconds: 132
+Time_In_Match_Seconds: 1360
+Towers_Destroyed: 0
+Wards_Placed: 0
+Win_Status: Winner
+Winning_TaskForce: 1
+hasReplay: n
+hz_gamer_tag: OneEyedReaper15
+hz_player_name: None
+match_queue_id: 448
+name: Normal: Joust
+playerId: 704744153
+playerName: [Muwn]OneEyedReaper15
+playerPortalId: 10
+playerPortalUserId: 2533274892915184
+ret_msg: None
