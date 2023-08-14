@@ -1,8 +1,10 @@
+from ast import With
 from asyncio import threads
 from concurrent.futures import thread
 import requests
 import time
-import datetime 
+import datetime
+from datetime import timedelta 
 import os
 import json
 import threading
@@ -15,37 +17,54 @@ from dotenv import load_dotenv
 
 def check(func):
     def wrapper(cls, *args, **kwargs):
-        print('Inside wrapper')
-        if( cls.requestCount <= cls.maxRequests):
-            if not cls.sessionLoaded:
-                print('Session not loaded, starting thread')
-                Thread(target=cls.session).start()
-                counter = 0
-                while cls.sessionId is None and counter < cls.maxRequests:
-                    print('Waiting for session ID...')
-                    time.sleep(1)
-                    counter += 1
-                if(cls.sessionLoaded and counter < cls.maxRequests):
-                    cls.requestCount=cls.requestCount+1
-                    return func(cls, *args, **kwargs)
+        runFunc=False   #test to see if we should run the funchion so threads do not have to wait for each funchion to complete
+        with cls.lock:
+            if( cls.requestCount < cls.maxRequests):
+            
+                if not cls.sessionLoaded:
+                    Thread(target=cls.session).start()
+                    print('Session not loaded, starting thread')
+                
+                    counter = 0
+                    while cls.sessionId is None and counter < cls.maxRequests:
+                        print('Waiting for session ID...')
+                        time.sleep(1)
+                        counter += 1
+                       
+                    if(cls.sessionLoaded and cls.requestCount < cls.maxRequests):
+                        cls.requestCount=cls.requestCount+1
+                        runFunc=True
                     
-            elif (not cls.sessionId==None):
-                print('Session loaded, calling function directly')
-                cls.requestCount=cls.requestCount+1
-                return func(cls, *args, **kwargs)
-        else:
-              sql = """
+                elif (not cls.sessionId==None):
+                    cls.requestCount=cls.requestCount+1
+                    if(cls.requestCount%100):                           #This wrapper can get hit a lot with a lot of dirrent calls so we only update the disk every few requests
+                        sql = """
+                        UPDATE sessions
+                        SET request_count = """+str(cls.maxRequests - cls.requestCount)+"""
+                        WHERE session = (
+                            SELECT session
+                            FROM sessions
+                            ORDER BY time DESC
+                            LIMIT 1
+                        );
+                        """
+                        db.execute(sql)
+                    runFunc=True
+
+            else:
+                sql = """
                 UPDATE sessions
-                SET request_count = <cls.requestCount>
-                WHERE session_number = (
-                    SELECT session_number
+                SET request_count = """+str(cls.maxRequests - cls.requestCount)+"""
+                WHERE session = (
+                    SELECT session
                     FROM sessions
-                    ORDER BY session_date DESC
+                    ORDER BY time DESC
                     LIMIT 1
                 );
                 """
-              db.execute(sql)
-
+                db.execute(sql)
+        if  runFunc:
+            return func(cls, *args, **kwargs)
     return wrapper
 
 
@@ -70,9 +89,11 @@ class SMITE(object):
         cls.lock = threading.Lock()
         if cls.devId==None or  cls.authKey ==None:
             print("Missing feilds in env file")
+         
 
     @classmethod
     def session(cls):
+        cls.sessionLoaded = False
         print("Loading sessions")                                          # Indicate that sessions are being loaded
         path = "cashe//seshionTime.txt"                                    # Define the path to the session time cache file
         lastConn = None                                                    # Initialize lastConn to None
@@ -94,15 +115,41 @@ class SMITE(object):
                 cls.sessionId = str(raw['session_id'])                     # Get the session ID from the new session
                 cls.maxRequests = 7500
             else:
-                sql = "SELECT session FROM sessions"                       # Select the session from the sessions in the database
-                raw = db.get(sql)
+                sql = "SELECT session, request_count FROM sessions"                       # Select the session from the sessions in the database
+                raw = db.get(sql) 
                 cls.sessionId = str(raw[-1][0])                            # Get the session ID from the last session
-                cls.maxRequests= int(str(raw[-1][0]))
-                cls.sessionLoaded = True                                   # Indicate that the session has been loaded
+                cls.maxRequests= int(str(raw[-1][1])) 
+            out = cls.testsession()
+            if(out.status_code==200):
+                if not ("successful test" in str(out.content)):
+                    print(out.content)
+                else:
+                    cls.sessionLoaded = True
+
+                
             sql = "DELETE FROM sessions WHERE session= '" + cls.sessionId + "'" # Delete the session with the current session ID from the database
             db.execute(sql)
-            sql = "INSERT INTO sessions VALUES('" + str(cls.sessionId) + "'," + str(timeNow) + "'," + str(cls.maxRequests) +")" # Insert the current session ID and time into the database
-            db.insert(sql)
+            if(not cls.sessionId is None):
+                sql = "INSERT INTO sessions VALUES('" + str(cls.sessionId) + "', '" + str(timeNow) + "', " + str(cls.maxRequests) + ")" # Insert the current session ID and time into the database
+                db.insert(sql)
+            else:
+                cls.sessionLoaded = False
+                out = cls.ping()
+                print(out.status_code)
+                if(out.status_code==200):
+                    print("API refused to give session check max session count of 30 and request count of 7500")
+                    print("Will retry connection at 00:00 UTC time")
+                    now_utc = datetime.utcnow()                         # Calculate the current UTC time
+                    start_of_day_utc = datetime(now_utc.year, now_utc.month, now_utc.day) + timedelta(days=1)  # Calculate the start of the next day in UTC time
+                    time_difference = (start_of_day_utc - now_utc).total_seconds()  # Calculate the time difference between now and the start of the next day
+                    time.sleep(time_difference)                         # Sleep the thread until the start of the next day in UTC time
+                else:
+                    print("dumping error from the ping request to the server")
+                    print("Status Code {out.status_code}")  
+                    print(out.json())
+                    
+            if(cls.sessionId is None):
+                print("Their is no Session ID")
             time.sleep(sleepTime)                                          # Sleep for the sleep time
             sleepTime = defaultSleep                                       # Reset the sleep time to the default sleep time
 
@@ -115,8 +162,18 @@ class SMITE(object):
           
     @classmethod
     def testsession(cls):
+        variables = [cls.site, cls.responseFormat, cls.devId, cls.getSignature("testsession"), cls.sessionId, cls.genUtc()]
+        variable_names = ["site", "responseFormat", "devId", "getSignature", "sessionId", "genUtc"]
+        flag =False
+
+        for var, name in zip(variables, variable_names):
+            if var is None:
+                print(f"{name} is None")
+                flag=True                 
         print(cls.site+"/testsession"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("testsession")+"/"+cls.sessionId+"/"+cls.genUtc())
-        out =requests.get(cls.site+"/testsession"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("testsession")+"/"+cls.sessionId+"/"+cls.genUtc())
+        if not flag:
+            out =requests.get(cls.site+"/testsession"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("testsession")+"/"+cls.sessionId+"/"+cls.genUtc())
+
         return out
     
     
@@ -145,6 +202,7 @@ class SMITE(object):
     @classmethod
     @check
     def getMatchidsbyQueue(cls,date,hour,queueId):
+        print(cls.site+"/getmatchidsbyqueue"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchidsbyqueue")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(queueId)+"/"+str(date)+"/"+str(hour))
         out =requests.get(cls.site+"/getmatchidsbyqueue"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchidsbyqueue")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(queueId)+"/"+str(date)+"/"+str(hour))
         return out
 
@@ -153,14 +211,8 @@ class SMITE(object):
     def getMatchDetailsBatch(cls,str1):
         request=None
         try:
-            # Print each part of the string
-            print("cls.site: ", cls.site)
-            print("cls.responseFormat: ", cls.responseFormat)
-            print("cls.devId: ", cls.devId)
-            print("cls.getSignature('getmatchdetailsbatch'): ", cls.getSignature("getmatchdetailsbatch"))
-            print("cls.sessionId: ", cls.sessionId)
-            print("cls.genUtc(): ", cls.genUtc())
-            print("str1: ", str1)
+            #teststr= cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str1
+            #print(teststr)
             request =requests.get(cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str1).json()
             
         except:
@@ -187,7 +239,7 @@ class SMITE(object):
         else:
             cls.sessionLoaded=True
         return out
-    
+                                           
     @classmethod     
     def getSignature(cls,command):
         utcTime= cls.genUtc()

@@ -1,11 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import pandas as pd
 import math
 import random
 import re
-from threading import Thread
 import time
+from db import db
+from threading import Thread
+from torch.utils import data
+
 
 from db import db
 class nodeGen(object):
@@ -17,61 +21,36 @@ class nodeGen(object):
         self.model=self.makeModel()
 
         
-    def makeTensor(self,queueId:int):
-        sql="select matchInfo.ID, matchInfo.GodId, matchInfo.ItemId1, matchInfo.ItemId2, matchInfo.ItemId3, matchInfo.ItemId4, matchInfo.ItemId5, matchInfo.ItemId6, matchInfo.ActiveId1, matchInfo.ActiveId2, matchInfo.ActiveId3, matchInfo.ActiveId4, matchInfo.Win_Status from matchInfo inner join matchIds on matchIds.ID=matchInfo.ID  where matchIds.queueID="+str(queueId)+" order by matchInfo.ID desc;"
-        matchInfo=db.get(sql)
-        #print(matchInfo[0])
 
-        tenInfoTemp =torch.tensor(matchInfo,device=self.device)
-        
-        idxs, vals= torch.unique(tenInfoTemp[:,0],return_counts=True)                       #https://twitter.com/jeremyphoward/status/1185062637341593600/photo/1
-        matchInfoGroup=torch.empty((1,vals[0],13),device=self.device)
-
-        #matchInfoGroup=torch.cat(torch.split_with_sizes(tenInfoTemp[:,0:len(matchInfo[0])],tuple(vals)),1)
-        matchInfoGroupTuple=torch.split_with_sizes(tenInfoTemp[:,0:len(matchInfo[0])],tuple(vals))
-        matchInfoGroup=torch.stack(matchInfoGroupTuple)
-        return matchInfoGroup.to(self.device)
     def makeModel(self):
-        data=self.makeTensor(426)
-        
-        data=self.expandData(data)
-
-        mid=int(((len(data))/2)*1.5)
-        dataTrain=data[:mid]
-        dataTest=data[mid:]
-
+        data=Dataset(426,self.device)
         model=Network(self.device)
         model.to(self.device)
         model.train()
         lossFunction = torch.nn.BCELoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=1.5e-3)
-        
-        
-        isWin=dataTrain[:,:, -1:]
-        dataTrain=dataTrain.type(torch.FloatTensor)
-        isWin=isWin.type(torch.FloatTensor)
-
      
         blockSize=1
-        for i in range(0,dataTrain.size()[0],blockSize):
+        for i in range(0,data.__len__(),blockSize):
             block=None
+            isWin=None
             try:
                 #print(f"come on {dataTrain[i:blockSize*(i+1),:,0]} {i} {i+1}")
-                blockSize=block+10
-                block=dataTrain[i:blockSize*(i+1),:,:]
-                print(block)
+                blockSize=blockSize+1
+                block=data.__getitem__(blockSize)
+                print(block[0][0])
             except Exception as e:   
                 if bool(re.search("CUDA out of memory",str(e))):
                     blockSize=blockSize-10
-                    block=dataTrain[i:blockSize*(i+1),:,:]
-            block=dataTrain[i:blockSize*(i+1),:,:]
-            block=block.to(self.device)       
-                        
+                    block=data.__getitem__(blockSize)
+                    print(block)
+                else:
+                    print(e)
 
-            if torch.cuda.is_available():
-                dataTrain = dataTrain.cuda(non_blocking=True)
-            dataTrain, isWin =self.scrambler(isWin,dataTrain)
-            isWinePrediction=model(dataTrain)
+            if torch.cuda.is_available() and self.device is torch.device('cuda'):
+                block = block.cuda(non_blocking=True)
+            
+            isWinePrediction=model(block)
 
             isWin= torch.reshape(isWin, isWinePrediction.size())
             
@@ -83,7 +62,7 @@ class nodeGen(object):
    
             optimizer.step()
 
-            model.forward(dataTrain)
+            model.forward(block)
             if(i%100000==0):
                 acc=self.findAccuracy(isWinePrediction,dataTrain,.4999)
                 print(f" {dataTrain[0][0]}")
@@ -114,49 +93,11 @@ class nodeGen(object):
         loseAvg=torch.mean(isConLose)
         out = (winAvg,loseAvg)
         return out
-    def expandData(self, data):
-        mid=int(data.size()[1]/2)
-        fact=math.factorial(mid)
-        factData=self.expandDataIterate(data,layerMax=mid)
-        print("Data expanded")
-        return factData
-
-           
-                                     
-    def expandDataIterate(self,data,layerMax,layer=0):
-        layer=layer+1
-        factData=None
-        if layer<layerMax+1:
-            
-            for i in range(0,int(data.size()[1]/2)):
-                firstVal=data[:,0,:]
-                
-                data[:,0,:]=data[:,i,:]
-                data[:,i,:]=firstVal
-                #print(data.size())
-                
-                if not factData is None:
-                    #print(f"{factData.size()}")
-                    try:
-                        factData= torch.cat((self.expandDataIterate(data,layerMax,layer), factData,), dim=0)
-                    except Exception as e:
-                       
-                       if bool(re.search("CUDA out of memory",str(e))):
-                           factData=torch.cat((self.expandDataIterate(data,layerMax,layer).to("cpu"), factData.to("cpu"),), dim=0)
-                else:factData= self.expandDataIterate(data,layerMax,layer)
-        else:
-            #print(f"data {data.size()}")
-            out=data.view(torch.int64)
-            return out 
-        out=factData.view(torch.int64)
-        return factData
 
     def scrambler(self, winLose,data):
         if(bool(random.randint(0,1))):
             winLose= torch.flip(winLose,dims=[1])
             data=torch.flip(data,dims=[1])
-            
-
         return data,winLose
         
     def analyzeGame(self, data):
@@ -197,17 +138,99 @@ class Network(nn.Module):
         #    )
 
     def forward(self, x):
-        
         x=x[:,:-1]
         out=x.reshape(x.size(0), -1).to(self.device)
         
         out = self.layer1(out)
-        for i in range(0,40):
+        for i in range(0,20):
             out = self.layerMid(out)
         out = self.outLayer1(out)
-        
-        return out     
-    
+        return out   
     def countParameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad) 
+    
+
+
+
+
+class Dataset(data.Dataset):
+    def __init__(self, queueId:int,device):
+        self.queueId=queueId
+        self.device=device
+        self.limit= False
+        sql="SELECT ID FROM matchIds WHERE queueID="+str(self.queueId)+" ORDER BY ID DESC LIMIT 1;"
+        self.startI=db.get(sql)[0][0]
+
+    def makeTensor(self,queueId:int,index:int):
+        print("test2")
+        col="matchInfo.ID, matchInfo.GodId, matchInfo.ItemId1, matchInfo.ItemId2, matchInfo.ItemId3, matchInfo.ItemId4, matchInfo.ItemId5, matchInfo.ItemId6, matchInfo.ActiveId1, matchInfo.ActiveId2, matchInfo.ActiveId3, matchInfo.ActiveId4, matchInfo.Win_Status from matchInfo inner join matchIds on matchIds.ID=matchInfo.ID"
+        sql="SELECT "+col+" WHERE matchIds.queueID="+str(self.queueId)+" and matchIds.queueID < "+str(self.startI-1)+" ORDER BY matchInfo.ID desc limit "+str(index*10)+";"
+        matchInfo=db.get(sql)
+        #print(sql)
+        print(matchInfo)
         
+        #self.startI=matchInfo[-1,0]
+        
+        
+        tenInfoTemp =torch.tensor(matchInfo,device=self.device)
+         
+        
+        idxs, vals= torch.unique(tenInfoTemp[:,0],return_counts=True)                       #https://twitter.com/jeremyphoward/status/1185062637341593600/photo/1
+        matchInfoGroup=torch.empty((1,vals[0],13),device=self.device)
+        
+
+        #matchInfoGroup=torch.cat(torch.split_with_sizes(tenInfoTemp[:,0:len(matchInfo[0])],tuple(vals)),1)
+        matchInfoGroupTuple=torch.split_with_sizes(tenInfoTemp[:,0:len(matchInfo[0])],tuple(vals))
+        matchInfoGroup=torch.stack(matchInfoGroupTuple)
+        time.sleep(10)
+        return matchInfoGroup.to(self.device)
+    def __len__(self):
+        sql="SELECT COUNT(ID) FROM matchIds WHERE queueID="+str(self.queueId)+";"
+        
+        out= db.get(sql)
+        return int(out[0][0])
+
+    def __getitem__(self, index:int):
+        dataRaw=self.makeTensor(self.queueId,index)
+        
+        data=self.expandData(dataRaw)
+        isWin=data[:,:, -1:]
+        data=data.type(torch.FloatTensor)
+        isWin=isWin.type(torch.FloatTensor)
+        data=data.to(self.device)
+        isWin=isWin.to(self.device)
+        return data, isWin
+    def expandData(self, data):
+        mid=int(data.size()[1]/2)
+        fact=math.factorial(mid)
+        factData=self.expandDataPermutation(data,layerMax=mid)                                  #Expand matchs by finding all the permutations of the data. In math turms x = data and y = data expanded Ex: x*5!=y  
+        factData=torch.flip(factData,dims=[1])                                                  #Flips the expanded data (factData)
+        factData=self.expandDataPermutation(factData,layerMax=mid)                              #Now that the data has been fliped it finds all the permutations of the other team. In math turms x = factData and y = data expanded Ex: x*5!=y
+        factData=torch.flip(factData,dims=[1])                                                  #Fliped data back
+        print("Data expanded")
+        return factData                                                                         #data is returned (x*5!)^2=len(data) larger. Note this will be very high in ram usage and should be replaced in a update to the AI modual.
+    
+    def expandDataPermutation(self,data,layerMax,layer=0):
+        layer=layer+1
+        factData=None
+        if layer<layerMax+1:
+            for i in range(0,int(data.size()[1]/2)):
+                firstVal=data[:,0,:]
+                data[:,0,:]=data[:,i,:]
+                data[:,i,:]=firstVal
+                if not factData is None:
+                    factData= torch.cat((self.expandDataPermutation(data,layerMax,layer), factData,), dim=0)
+                else:
+                    factData= self.expandDataPermutation(data,layerMax,layer)
+        else:
+            out=data.view(torch.int64)
+            return out 
+        out=factData.view(torch.int64)
+        return factData
+
+    def getGPURam(self):
+        t = torch.cuda.get_device_properties(0).total_memory
+        r = torch.cuda.memory_reserved(0)
+        a = torch.cuda.memory_allocated(0)
+        f = r-a
+        return f
