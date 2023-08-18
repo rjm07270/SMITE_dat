@@ -64,7 +64,18 @@ def check(func):
                 """
                 db.execute(sql)
         if  runFunc:
-            return func(cls, *args, **kwargs)
+            out = func(cls, *args, **kwargs)
+            if isinstance(out, list):
+                if len(out) > 0:
+                    tester = out[0]["ret_msg"]
+                # Perform action for lists
+            elif isinstance(out, dict):
+                tester = out["ret_msg"]
+            else:
+                print("Do that again IDK what happened")
+            return out 
+        else:
+            print("Refuaing to run methode likly out of requests or sessions :( ")
     return wrapper
 
 
@@ -181,30 +192,30 @@ class SMITE(object):
     @check
     def getGods(cls):
         out =requests.get(cls.site+"/getgods"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getgods")+"/"+cls.sessionId+"/"+cls.genUtc()+"/1")
-        return out
+        return out.json()
     @classmethod
     @check
     def getItems(cls):
          out =requests.get(cls.site+"/getitems"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getitems")+"/"+cls.sessionId+"/"+cls.genUtc()+"/1")
-         return out
+         return out.json()
     @classmethod
     @check
     def getMotd(cls):
         out =requests.get(cls.site+"/getmotd"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmotd")+"/"+cls.sessionId+"/"+cls.genUtc())
-        return out
+        return out.json()
 
     @classmethod
     @check
     def getTopMatches(cls):
         out =requests.get(cls.site+"/gettopmatches"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("gettopmatches")+"/"+cls.sessionId+"/"+cls.genUtc())
-        return out
+        return out.json()
 
     @classmethod
     @check
     def getMatchidsbyQueue(cls,date,hour,queueId):
         print(cls.site+"/getmatchidsbyqueue"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchidsbyqueue")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(queueId)+"/"+str(date)+"/"+str(hour))
         out =requests.get(cls.site+"/getmatchidsbyqueue"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchidsbyqueue")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(queueId)+"/"+str(date)+"/"+str(hour))
-        return out
+        return out.json()
 
     @classmethod
     @check
@@ -226,7 +237,7 @@ class SMITE(object):
     def getMatchdetails(cls,matchId):
         print(cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(matchId))
         out =requests.get(cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(matchId))
-        return out
+        return (out.json())
            
     @classmethod
     def makeSession(cls):

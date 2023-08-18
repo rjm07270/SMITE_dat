@@ -1,32 +1,33 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed, thread
 from math import fabs
+from pyexpat import features
 import sqlite3
 import time
 import json
 from datetime import datetime, timedelta
 from SMITE import SMITE
-from sqlite3 import Error
 from db import db
 from nodeGen import nodeGen
 from threading import Thread
 import sys
 
-loadingBar=""
+print("Loading Moduals")
 def main():
     db()
-    #AI=nodeGen()
-    #runAI(AI)
-    SMITE() 
-    #print(SMITE.getGods().json())
-    #print(SMITE.testsession().json())
-    #print(SMITE.getMatchidsbyQueue(20230628,-1,435).json())
+    AI=nodeGen()
+    runAI(AI)
+    #SMITE()
+    #print("Loaded Moduals")
+    #print(SMITE.getGods())
+    #print(SMITE.testsession())
+    #print(SMITE.getMatchidsbyQueue(20230628,-1,435))
     #recordMatchs()
-    MatchStats()
-    #out=SMITE.getMatchdetails(1261005140).json()    #fix your shit the date is wrong with your methode to pull queues
+    #MatchStats()
+    #out=SMITE.getMatchdetails(1261005140)    #fix your shit the date is wrong with your methode to pull queues
     
 
 def insertGods():
-    gods =SMITE.getGods().json()
+    gods =SMITE.getGods()
     print(gods[0]["godCard_URL"])
     for x in gods:
         temp=x["godCard_URL"].split("/")[-1][0:-4]
@@ -34,7 +35,7 @@ def insertGods():
         print(sql)
         db.insert(sql)
 def insertItems():
-    items=SMITE.getItems().json()
+    items=SMITE.getItems()
     sql="drop table items"
     db.execute(sql)
     sql= "CREATE TABLE items ('ActiveFlag' varchar(1), 'ChildItemId' SMALLINT , 'DeviceName' varchar(128), 'Glyph' varchar(1), 'IconId' SMALLINT, 'ItemId' SMALLINT NOT NULL PRIMARY KEY, 'ItemTier' SMALLINT, 'Price' SMALLINT, 'RootItemId' SMALLINT, 'StartingItem' boolean, 'Type' varchar(64), 'itemIcon_URL' varchar(255), 'ret_msg' varchar(64));"
@@ -106,7 +107,7 @@ def recordMatchs(lastSave=False, day="20230808"):         #Seems like at some po
     print("Done recording matches: ")
 
 def lookUpMatchIdQueue(day,queueID):
-    out=SMITE.getMatchidsbyQueue(day,-1, queueID).json()
+    out=SMITE.getMatchidsbyQueue(day,-1, queueID)
    
     sql1= "INSERT INTO  matchIds(ID, date, queueID) VALUES"
     sql2=""
@@ -131,7 +132,7 @@ def MatchStats(lastSave=True, day="20230628"):
             matchIds=[x[0]]
         else:
             matchIds.append(x[0])                
-    with ThreadPoolExecutor(max_workers=128) as executor:               
+    with ThreadPoolExecutor(max_workers=32) as executor:               
         futures = []
         for i in range(0, int(len(matchIds)/10)-1):      #Goes through matchIds by chunks of 10
             str1=""
@@ -142,43 +143,59 @@ def MatchStats(lastSave=True, day="20230628"):
             futures.append(executor.submit(callAndInsert, str1, x))  # Submit the function to the executor
 
         results = []
+        insertSQL = """
+            INSERT INTO matchInfo(
+                ID, Account_Level, ActivePlayerId, GodId, ItemId1, ItemId2, ItemId3, 
+                ItemId4, ItemId5, ItemId6, ActiveId1, ActiveId2, ActiveId3, ActiveId4, 
+                Win_Status, ret_msg
+            ) VALUES
+            """
+        BigSQL = insertSQL                                  #This string will hold multiable statments to merge small sql entrys
         for i, future in enumerate(as_completed(futures)):  # as the threads complete
             
-            results.append(future.result())  # collect the results
-                    
+            resultTemp = future.result()
+            if resultTemp is not None:
+                
+                BigSQL = BigSQL + resultTemp + ","  # collect the results       
+            
+                        
+                if(not (db.islocked and BigSQL == insertSQL)):
+                    BigSQL = BigSQL[:-1] + ";"
+                    db.insert((BigSQL), ("UNIQUE constraint failed: matchInfo.ID, matchInfo.Win_Status, matchInfo.GodId"))
+                    BigSQL = insertSQL
+                
             progress = (i + 1) / len(futures) # update the loading bar
-            bar = '#' * int(progress * 20) + ' ' * (20 - int(progress * 20))
+            bar = '#' * int(progress * 20) + ' ' * (20 - int(progress * 20))    
+            
             sys.stdout.write(f'\rprogress: [{bar}] {progress * 100:.1f}%')
             sys.stdout.flush()
-        
+        if(not BigSQL == insertSQL):
+            BigSQL = BigSQL[:-1] + ";"
+            db.execute(BigSQL, ("UNIQUE constraint failed: matchInfo.ID, matchInfo.Win_Status, matchInfo.GodId"))
+            
     print("Done: ")                 
 def callAndInsert(str1, x):
     request = SMITE.getMatchDetailsBatch(str1)  # Gets the Match Details for 10 Ids
     if request is None:
         print("Can't get match details")
         return
-    return request
+    
 
     # Define the SQL insert statement
-    sql = """
-    INSERT INTO matchInfo(
-        ID, Account_Level, ActivePlayerId, GodId, ItemId1, ItemId2, ItemId3, 
-        ItemId4, ItemId5, ItemId6, ActiveId1, ActiveId2, ActiveId3, ActiveId4, 
-        Win_Status, ret_msg
-    ) VALUES
-    """
+    sql = ""
 
     # Prepare the values for the insert statement
     values = []
     for x in request:
         try:
-            values.append((
-                x['Match'], x['Account_Level'], x['ActivePlayerId'], x['GodId'],
-                x['ItemId1'], x['ItemId2'], x['ItemId3'], x['ItemId4'], x['ItemId5'],
-                x['ItemId6'], x['ActiveId1'], x['ActiveId2'], x['ActiveId3'], x['ActiveId4'],
-                str(x['Win_Status']).replace("Winner", "1").replace("Loser", "0"),
-                str(x['ret_msg']).replace("Player Privacy Flag set for this player.", "")
-            ))
+            if all(x[key] is not None for key in ["Win_Status", "GodId", "Match"]) and int(x['ActivePlayerId']) != 0:
+                values.append((
+                    x['Match'], x['Account_Level'], x['ActivePlayerId'], x['GodId'],
+                    x['ItemId1'], x['ItemId2'], x['ItemId3'], x['ItemId4'], x['ItemId5'],
+                    x['ItemId6'], x['ActiveId1'], x['ActiveId2'], x['ActiveId3'], x['ActiveId4'],
+                    str(x['Win_Status']).replace("Winner", "1").replace("Loser", "0"),
+                    f"'{x['ret_msg']}'"
+                ))
         except TypeError:
             print("Empty")
 
@@ -189,7 +206,8 @@ def callAndInsert(str1, x):
     )   
     sql += values_sql   # Combine the SQL insert statement with the values                  
     # Execute the SQL insert statement
-    db.insert(sql, ("UNIQUE constraint failed: matchInfo.ID, matchInfo.Win_Status, matchInfo.GodId"))
+    #db.insert(sql, ("UNIQUE constraint failed: matchInfo.ID, matchInfo.Win_Status, matchInfo.GodId"))
+    return sql    
 
 def watchPlayer():
     pass
