@@ -2,15 +2,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>d740d26d-9e35-4f93-b448-534dee19882e</ProjectGuid>
+    <ProjectGuid>f35c4322-10c0-4862-b2ec-f887d5a316bb</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>SMITE_dat.py</StartupFile>
+    <StartupFile>DiscordBot.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
-    <Name>SMITE_dat</Name>
-    <RootNamespace>SMITE_dat</RootNamespace>
+    <Name>DiscordBot</Name>
+    <RootNamespace>DiscordBot</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,29 +21,24 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="db.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="nodeGen.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="SMITE.py">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="SMITELookup.py" />
-    <Compile Include="SMITE_dat.py" />
+    <Compile Include="cogs\events.py" />
+    <Compile Include="cogs\music.py" />
+    <Compile Include="cogs\perms.py" />
+    <Compile Include="db.py" />
+    <Compile Include="DiscordBot.py" />
+    <Compile Include="help.py" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include=".env">
-      <SubType>Code</SubType>
-    </Content>
+    <Folder Include="cogs\" />
+    <Folder Include="cogs\__pycache__\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DiscordBot\DiscordBot.pyproj">
-      <Name>DiscordBot</Name>
-      <Project>{f35c4322-10c0-4862-b2ec-f887d5a316bb}</Project>
-      <Private>True</Private>
-    </ProjectReference>
+    <Content Include=".env" />
+    <Content Include="cogs\__pycache__\events.cpython-39.pyc" />
+    <Content Include="cogs\__pycache__\help.cpython-39.pyc" />
+    <Content Include="cogs\__pycache__\help_cog.cpython-39.pyc" />
+    <Content Include="cogs\__pycache__\music.cpython-39.pyc" />
+    <Content Include="cogs\__pycache__\perms.cpython-39.pyc" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
