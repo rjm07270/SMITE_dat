@@ -14,15 +14,16 @@ import sys
 print("Loading Moduals")
 def main():
     db()
-    AI=nodeGen()
-    runAI(AI)
-    #SMITE()
+    #AI=nodeGen()
+    #AI.testCuda()
+    #runAI(AI)
+    SMITE()
     #print("Loaded Moduals")
     #print(SMITE.getGods())
     #print(SMITE.testsession())
     #print(SMITE.getMatchidsbyQueue(20230628,-1,435))
     #recordMatchs()
-    #MatchStats()
+    MatchStats()
     #out=SMITE.getMatchdetails(1261005140)    #fix your shit the date is wrong with your methode to pull queues
     
 
@@ -123,7 +124,6 @@ def lookUpMatchIdQueue(day,queueID):
         print("No data for: "+str(day)+" ID: "+str(queueID))
 
 def MatchStats(lastSave=True, day="20230628"):
-
     sql=("select matchIds.ID from matchIds left join matchInfo on matchIds.ID= matchInfo.ID where matchInfo.ID is null LIMIT "+str(10*(SMITE.maxRequests-SMITE.requestCount))+";")
     matchIdsRaw=db.get(sql)
     matchIds=[]
@@ -132,7 +132,7 @@ def MatchStats(lastSave=True, day="20230628"):
             matchIds=[x[0]]
         else:
             matchIds.append(x[0])                
-    with ThreadPoolExecutor(max_workers=32) as executor:               
+    with ThreadPoolExecutor(max_workers=10000) as executor:               
         futures = []
         for i in range(0, int(len(matchIds)/10)-1):      #Goes through matchIds by chunks of 10
             str1=""
@@ -180,10 +180,10 @@ def callAndInsert(str1, x):
         print("Can't get match details")
         return
     
-
+    cleanRequests = str1.split(",")
     # Define the SQL insert statement
     sql = ""
-
+    errorFlag= False
     # Prepare the values for the insert statement
     values = []
     for x in request:
@@ -196,8 +196,12 @@ def callAndInsert(str1, x):
                     str(x['Win_Status']).replace("Winner", "1").replace("Loser", "0"),
                     f"'{x['ret_msg']}'"
                 ))
+            
+                
         except TypeError:
             print("Empty")
+            errorFlag=True #If their is an error than I did not get a request baack so I do not want to delete the ID becuse wrong IDs still return somthing from the server
+            
 
     # Convert the values to SQL format
     values_sql = ", ".join(
@@ -207,6 +211,12 @@ def callAndInsert(str1, x):
     sql += values_sql   # Combine the SQL insert statement with the values                  
     # Execute the SQL insert statement
     #db.insert(sql, ("UNIQUE constraint failed: matchInfo.ID, matchInfo.Win_Status, matchInfo.GodId"))
+    if sql=="" and not errorFlag:
+        delete_sql = f"""
+            DELETE FROM matchIds
+            WHERE ID IN ({', '.join(map(str, cleanRequests))})
+            """
+        db.execute(delete_sql)
     return sql    
 
 def watchPlayer():

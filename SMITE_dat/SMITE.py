@@ -213,7 +213,7 @@ class SMITE(object):
     @classmethod
     @check
     def getMatchidsbyQueue(cls,date,hour,queueId):
-        print(cls.site+"/getmatchidsbyqueue"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchidsbyqueue")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(queueId)+"/"+str(date)+"/"+str(hour))
+        #print(cls.site+"/getmatchidsbyqueue"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchidsbyqueue")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(queueId)+"/"+str(date)+"/"+str(hour))
         out =requests.get(cls.site+"/getmatchidsbyqueue"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchidsbyqueue")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(queueId)+"/"+str(date)+"/"+str(hour))
         return out.json()
 
