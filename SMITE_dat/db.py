@@ -7,9 +7,6 @@ import threading
 import sqlite3
 from sqlite3 import Error
 
-
-
-
 def lockedup(func):                           
     def wrapper(cls, *args, **kwargs):
         with cls.lock:

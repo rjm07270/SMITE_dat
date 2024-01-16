@@ -22,9 +22,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="cogs\events.py" />
-    <Compile Include="cogs\music.py" />
     <Compile Include="cogs\perms.py" />
-    <Compile Include="db.py" />
+    <Compile Include="cogs\SMITECommands.py" />
     <Compile Include="DiscordBot.py" />
     <Compile Include="help.py" />
   </ItemGroup>

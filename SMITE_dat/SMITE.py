@@ -220,23 +220,26 @@ class SMITE(object):
     @classmethod
     @check
     def getMatchDetailsBatch(cls,str1):
+        #cls.testsession()
         request=None
         try:
-            #teststr= cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str1
-            #print(teststr)
+            teststr= cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str1
+            
             request =requests.get(cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str1).json()
             
         except:
             print(str1)
             print(cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str1)
-        
+        if request ==[]:
+            print(teststr)
         return request
 
     @classmethod
     @check
     def getMatchdetails(cls,matchId):
-        print(cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(matchId))
-        out =requests.get(cls.site+"/getmatchdetailsbatch"+cls.responseFormat+"/"+cls.devId+"/"+cls.getSignature("getmatchdetailsbatch")+"/"+cls.sessionId+"/"+cls.genUtc()+"/"+str(matchId))
+        print(cls.site + "/getmatchdetails" + cls.responseFormat + "/" + cls.devId + "/" + cls.getSignature("getmatchdetails") + "/" + cls.sessionId + "/" + cls.genUtc() + "/" + str(matchId))
+        out = requests.get(cls.site + "/getmatchdetails" + cls.responseFormat + "/" + cls.devId + "/" + cls.getSignature("getmatchdetails") + "/" + cls.sessionId + "/" + cls.genUtc() + "/" + str(matchId))
+
         return (out.json())
            
     @classmethod
@@ -264,6 +267,34 @@ class SMITE(object):
     def genUtc(cls):
         dayIs=datetime.datetime.utcnow()
         return dayIs.strftime("%G")+dayIs.strftime("%m")+dayIs.strftime("%d")+dayIs.strftime("%H")+dayIs.strftime("%M")+dayIs.strftime("%S")
+    
+    @classmethod
+    @check
+    def searchPlayers(cls, searchPlayer):
+        url = cls.site + "/searchplayers" + cls.responseFormat + "/" + cls.devId + "/" + cls.getSignature("searchplayers") + "/" + cls.sessionId + "/" + cls.genUtc() + "/" + searchPlayer
+        response = requests.get(url)
+        return response.json()
+
+    @classmethod
+    @check
+    def getMatchHistory(cls, playerId):
+        url = cls.site + "/getmatchhistory" + cls.responseFormat + "/" + cls.devId + "/" + cls.getSignature("getmatchhistory") + "/" + cls.sessionId + "/" + cls.genUtc() + "/" + str(playerId)
+        response = requests.get(url)
+        return response.json()
+
+    @classmethod
+    @check
+    def getPlayerStatus(cls, playerId):
+        url = cls.site + "/getplayerstatus" + cls.responseFormat + "/" + cls.devId + "/" + cls.getSignature("getplayerstatus") + "/" + cls.sessionId + "/" + cls.genUtc() + "/" + str(playerId)
+        response = requests.get(url)
+        return response.json()
+
+    @classmethod
+    @check
+    def getDemoDetails(cls, match_id):
+        url = cls.site + "/getdemodetails" + cls.responseFormat + "/" + cls.devId + "/" + cls.getSignature("getdemodetails") + "/" + cls.sessionId + "/" + cls.genUtc() + "/" + str(match_id)
+        response = requests.get(url)
+        return response.json()
      
 
 

@@ -1,139 +1,68 @@
 from discord.ext import commands
 from db import db
 
-command_attrs = {'hidden':True}
-class perms(commands.Cog, name='perms', command_attrs=command_attrs):
+class perms(commands.Cog):
     """description of class"""
     
-    def __init__(self,client):
-        self.client=client
+    def __init__(self, client):
+        self.client = client
 
-    @commands.command(help="It works")
+    @commands.command(help="Toggle whitelist mode for users.")
     async def white_user(self, ctx):
-        
-        value=None
-        if(bool(db.perms_cache[ctx.guild.id]["isWhite_user"][len(db.perms_cache[ctx.guild.id]["isWhite_user"])-1])):
-            value=0
-            db.perms_cache[ctx.guild.id]["isWhite_user"].remove(1)
-        else:
-            value=1
-            db.perms_cache[ctx.guild.id]["isWhite_user"].remove(0)
+        guild_id = str(ctx.guild.id)
+        current_mode = db.perms_cache[guild_id]["isWhite_user"]
+        new_mode = not current_mode
 
-        db.perms_cache[ctx.guild.id]["isWhite_user"].append(value)
-        sql = "UPDATE discord_servers SET isWhite_ch= "+value+" WHERE discord_server = "+str(ctx.guild.id)
-        
-        await db.insert(db.conn,sql)
+        db.perms_cache[guild_id]["isWhite_user"] = new_mode
+        sql = f"UPDATE discord_servers SET isWhite_user= {int(new_mode)} WHERE discord_server = {guild_id}"
+        await db.insert(sql)
 
-        await ctx.send(""+str(bool(db.perms_cache[ctx.guild.id]["isWhite_user"][len(db.perms_cache[ctx.guild.id]["isWhite_user"])-1])))
-    @commands.command()
+        await ctx.send(f"Whitelist mode for users is now {'enabled' if new_mode else 'disabled'}.")
+
+    @commands.command(help="Toggle whitelist mode for channels.")
     async def white_ch(self, ctx):
-        
-            value=None
-            if(bool(db.perms_cache[ctx.guild.id]["isWhite_ch"][len(db.perms_cache[ctx.guild.id]["isWhite_ch"])-1])):
-                value=0
-                db.perms_cache[ctx.guild.id]["isWhite_ch"].remove(1)
-            else:
-                value=1
-                db.perms_cache[ctx.guild.id]["isWhite_ch"].remove(0)
+        guild_id = str(ctx.guild.id)
+        current_mode = db.perms_cache[guild_id]["isWhite_ch"]
+        new_mode = not current_mode
 
-            db.perms_cache[ctx.guild.id]["isWhite_ch"].append(value)
-            sql = "UPDATE discord_servers SET isWhite_ch= "+value+" WHERE discord_server = "+str(ctx.guild.id)
-            
-            await db.insert(db.conn,sql)
+        db.perms_cache[guild_id]["isWhite_ch"] = new_mode
+        sql = f"UPDATE discord_servers SET isWhite_ch= {int(new_mode)} WHERE discord_server = {guild_id}"
+        await db.insert(sql)
 
-            await ctx.send(""+str(bool(db.perms_cache[ctx.guild.id]["isWhite_ch"][len(db.perms_cache[ctx.guild.id]["isWhite_ch"])-1])))
+        await ctx.send(f"Whitelist mode for channels is now {'enabled' if new_mode else 'disabled'}.")
 
+    @commands.command(help="Blacklist or whitelist a user or channel.")
+    async def toggle_list(self, ctx, input_id, list_type="black"):
+        # Extracting the ID from the input
+        target_id = input_id[2:-1]
 
-    @commands.command()
-    async def black(self, ctx, input):
-        
-            black_id=None
-            input =input[2:-1]
-            flag=False
-            sql=None
-            #channel checks
-            for channel in ctx.guild.channels:
-                if str(channel.id) == input:
-                    black_id = input
-            if not black_id==None:
-                flag=True
-                
-                if(black_id in db.perms_cache[ctx.guild.id]["black_list_ch"]):
-                    sql = "DELETE FROM discord_"+str(ctx.guild.id)+" WHERE black_list_ch = %s"
-                    db.perms_cache[ctx.guild.id]["black_list_ch"].remove(str(black_id))
-                    await ctx.send("Deleted Channel from black list")
-                else:
-                    sql = "INSERT INTO discord_"+str(ctx.guild.id)+"(black_list_ch) VALUES(%s)"
-                    db.perms_cache[ctx.guild.id]["black_list_ch"].append(str(black_id))
-                    await ctx.send("Added Channel to black list")
-            #user checks
-            for user in ctx.guild.members: 
-                if str(user.id) == input:
-                    black_id = input
-            
-            if (not black_id==None and not flag):
-                
-                if(black_id in db.perms_cache[ctx.guild.id]["black_list_users"]):
-                    sql = "DELETE FROM discord_"+str(ctx.guild.id)+" WHERE black_list_users = %s"
-                    db.perms_cache[ctx.guild.id]["black_list_users"].remove(str(black_id))
-                    await ctx.send("Deleted User from black list")
-                else:
-                    sql = "INSERT INTO discord_"+str(ctx.guild.id)+"(black_list_users) VALUES(%s)"
-                    db.perms_cache[ctx.guild.id]["black_list_users"].append(str(black_id))
-                    await ctx.send("Added User to black list")
-            #enters into db    
-            if not black_id==None:
-                value= (black_id,)
-                sql=sql.replace("%s", value) 
-                await db.insert(db.conn,sql)
+        # Check if the ID is for a channel or user
+        is_channel = any(str(channel.id) == target_id for channel in ctx.guild.channels)
+        is_user = any(str(user.id) == target_id for user in ctx.guild.members)
 
-    @commands.command()
-    async def white(self, ctx, input):
-            black_id=None
-            input =input[2:-1]
-            flag=False
-            sql=None
-            #channel checks
-            for channel in ctx.guild.channels:
-                if str(channel.id) == input:
-                    black_id = input
-            if not black_id==None:
-                flag=True
-                
-                if(black_id in db.perms_cache[ctx.guild.id]["white_list_ch"]):
-                    sql = "DELETE FROM discord_"+str(ctx.guild.id)+" WHERE white_list_ch = %s"
-                    db.perms_cache[ctx.guild.id]["white_list_ch"].remove(str(black_id))
-                    await ctx.send("Deleted Channel from white list")
-                else:
-                    sql = "exicute INTO discord_"+str(ctx.guild.id)+"(white_list_ch) VALUES(%s)"
-                    db.perms_cache[ctx.guild.id]["white_list_ch"].append(str(black_id))
-                    await ctx.send("Added Channel to white list")
-            #user checks
-            for user in ctx.guild.members: 
-                if str(user.id) == input:
-                    black_id = input
-            
-            if (not black_id==None and not flag):
-                
-                if(black_id in db.perms_cache[ctx.guild.id]["white_list_users"]):
-                    sql = "DELETE FROM discord_"+str(ctx.guild.id)+" WHERE white_list_users = %s"
-                    db.perms_cache[ctx.guild.id]["white_list_users"].remove(str(black_id))
-                    await ctx.send("Deleted User from white list")
-                else:
-                    sql = "INSERT INTO discord_"+str(ctx.guild.id)+"(white_list_users) VALUES(%s)"
-                    db.perms_cache[ctx.guild.id]["white_list_users"].append(str(black_id))
-                    await ctx.send("Added User to white list")
-            #enters into db    
-            if not black_id==None:
-                value= (black_id,)
-                sql=sql.replace("%s", value)
-                await db.insert(db.conn,sql,value)
-    
-                
+        if not (is_channel or is_user):
+            await ctx.send("Invalid ID provided.")
+            return
+
+        list_key = f"{list_type}_list"
+        if target_id in db.perms_cache[ctx.guild.id][list_key]:
+            db.perms_cache[ctx.guild.id][list_key].remove(target_id)
+            action = "Removed from"
+        else:
+            db.perms_cache[ctx.guild.id][list_key].append(target_id)
+            action = "Added to"
+
+        # Update the database
+        if action == "Added to":
+            sql = f"INSERT INTO discord_{ctx.guild.id}({list_key}) VALUES({target_id})"
+        else:
+            sql = f"DELETE FROM discord_{ctx.guild.id} WHERE {list_key} = {target_id}"
+        await db.insert(sql)
+
+        await ctx.send(f"{target_id} {action} the {list_type}list.")
+
     async def cog_check(self, ctx):
-        return await db.perms_check(db,ctx)
+        return await db.perms_check(ctx)
 
 def setup(client):
     client.add_cog(perms(client))
-
-

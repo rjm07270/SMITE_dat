@@ -18,13 +18,16 @@ def main():
     #AI.testCuda()
     #runAI(AI)
     SMITE()
+    #watchPlayer()    #make sure you test this out you are here
     #print("Loaded Moduals")
     #print(SMITE.getGods())
     #print(SMITE.testsession())
     #print(SMITE.getMatchidsbyQueue(20230628,-1,435))
     #recordMatchs()
-    MatchStats()
-    #out=SMITE.getMatchdetails(1261005140)    #fix your shit the date is wrong with your methode to pull queues
+    #MatchStats()
+    #out=SMITE.getMatchdetails(1329004787)    #fix your shit the date is wrong with your methode to pull queues
+    #out=SMITE.getMatchDetailsBatch("1329004787,1329004787,1329004787,1329004787,1329004787,1329004787,1329004787")
+    #print(out)
     
 
 def insertGods():
@@ -74,7 +77,7 @@ def getGodesItems():
     return map
 from datetime import datetime, timedelta
 
-def recordMatchs(lastSave=False, day="20230808"):         #Seems like at some point smite dropped their data so the date had to be changed
+def recordMatchs(lastSave=False, day="20231208"):         #Seems like at some point smite dropped their data so the date had to be changed
     path = "lastSave.txt"
     queueID = (426, 435, 448, 445, 10189, 434, 10189, 504, 451, 10193, 10197, 503, 441, 450, 10190, 10152, 438, 429, 446, 460)
 
@@ -83,6 +86,8 @@ def recordMatchs(lastSave=False, day="20230808"):         #Seems like at some po
             with open(path, "r") as file:
                 day = file.read()
         except FileNotFoundError:
+            five_days_ago = datetime.now() - timedelta(days=5)
+            day = five_days_ago.strftime("%Y%m%d")
             with open(path, "x") as file:
                 print("Making File and start recording at: " + day)
 
@@ -132,7 +137,7 @@ def MatchStats(lastSave=True, day="20230628"):
             matchIds=[x[0]]
         else:
             matchIds.append(x[0])                
-    with ThreadPoolExecutor(max_workers=10000) as executor:               
+    with ThreadPoolExecutor(max_workers=12) as executor:               
         futures = []
         for i in range(0, int(len(matchIds)/10)-1):      #Goes through matchIds by chunks of 10
             str1=""
@@ -220,14 +225,33 @@ def callAndInsert(str1, x):
     return sql    
 
 def watchPlayer():
+    # Example arguments for each method
+    search_player = "ExamplePlayer"
+    player_id = 123456
+    match_id = 7891011
+
+    # Calling the searchPlayers method and printing the response
+    search_players_response = SMITE.searchPlayers(search_player)
+    print("Search Players Response:", search_players_response)
+
+    # Calling the getMatchHistory method and printing the response
+    match_history_response = SMITE.getMatchHistory(player_id)
+    print("Match History Response:", match_history_response)
+
+    # Calling the getPlayerStatus method and printing the response
+    player_status_response = SMITE.getPlayerStatus(player_id)
+    print("Player Status Response:", player_status_response)
+
+    # Calling the getDemoDetails method and printing the response
+    demo_details_response = SMITE.getDemoDetails(match_id)
+    print("Demo Details Response:", demo_details_response)
     pass
+
 def runAI(AI):
     mapGodItem = getGodesItems()
     sql="select matchInfo.ID, matchInfo.GodId, matchInfo.ItemId1, matchInfo.ItemId2, matchInfo.ItemId3, matchInfo.ItemId4, matchInfo.ItemId5, matchInfo.ItemId6, matchInfo.ActiveId1, matchInfo.ActiveId2, matchInfo.ActiveId3, matchInfo.ActiveId4, matchInfo.Win_Status from matchInfo inner join matchIds on matchIds.ID=matchInfo.ID  where matchIds.queueID=426 ORDER BY by matchInfo.ID desc limit 10;"
     data=db.get(sql)
     winCal=AI.analyzeGame(data)
     print(winCal)
-    
-    
     pass
 main()

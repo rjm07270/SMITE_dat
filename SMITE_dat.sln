@@ -5,8 +5,6 @@ VisualStudioVersion = 17.7.34003.232
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "SMITE_dat", "SMITE_dat\SMITE_dat.pyproj", "{D740D26D-9E35-4F93-B448-534DEE19882E}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NewFolder1", "NewFolder1", "{2DDBCB93-04BD-4177-99B3-8277661E2B5B}"
-EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "DiscordBot", "DiscordBot\DiscordBot.pyproj", "{F35C4322-10C0-4862-B2EC-F887D5A316BB}"
 EndProject
 Global
@@ -22,9 +20,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{F35C4322-10C0-4862-B2EC-F887D5A316BB} = {2DDBCB93-04BD-4177-99B3-8277661E2B5B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {24C8150D-BD95-40B2-BAE4-2AD0F2750D57}
