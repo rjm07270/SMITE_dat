@@ -1,4 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed, thread
+#import imp
+from PyQt5 import QtWidgets, QtCore, QtGui
 from math import fabs
 from pyexpat import features
 import sqlite3
@@ -9,6 +11,7 @@ from SMITE import SMITE
 from db import db
 from nodeGen import nodeGen
 from threading import Thread
+from GameOverlay import GameOverlay
 import sys
 
 print("Loading Moduals")
@@ -17,7 +20,11 @@ def main():
     #AI=nodeGen()
     #AI.testCuda()
     #runAI(AI)
-    SMITE()
+    app = QtWidgets.QApplication(sys.argv)
+    ex = GameOverlay()
+    sys.exit(app.exec_())
+
+    #SMITE()
     #watchPlayer()    #make sure you test this out you are here
     #print("Loaded Moduals")
     #print(SMITE.getGods())
@@ -28,6 +35,7 @@ def main():
     #out=SMITE.getMatchdetails(1329004787)    #fix your shit the date is wrong with your methode to pull queues
     #out=SMITE.getMatchDetailsBatch("1329004787,1329004787,1329004787,1329004787,1329004787,1329004787,1329004787")
     #print(out)
+    
     
 
 def insertGods():
@@ -226,22 +234,22 @@ def callAndInsert(str1, x):
 
 def watchPlayer():
     # Example arguments for each method
-    search_player = "ExamplePlayer"
-    player_id = 123456
-    match_id = 7891011
+    search_player = "stoppedchain240"
+    player_id = 712558766
+    match_id = 1342722749
 
     # Calling the searchPlayers method and printing the response
     search_players_response = SMITE.searchPlayers(search_player)
     print("Search Players Response:", search_players_response)
-
+    print()
     # Calling the getMatchHistory method and printing the response
     match_history_response = SMITE.getMatchHistory(player_id)
     print("Match History Response:", match_history_response)
-
+    print()
     # Calling the getPlayerStatus method and printing the response
     player_status_response = SMITE.getPlayerStatus(player_id)
-    print("Player Status Response:", player_status_response)
-
+    #print("Player Status Response:", player_status_response)
+    print()
     # Calling the getDemoDetails method and printing the response
     demo_details_response = SMITE.getDemoDetails(match_id)
     print("Demo Details Response:", demo_details_response)

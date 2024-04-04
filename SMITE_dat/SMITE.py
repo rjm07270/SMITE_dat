@@ -299,6 +299,33 @@ class SMITE(object):
 
 
 
+class Item:
+    def __init__(self, ActiveFlag, ChildItemId, DeviceName, Glyph, IconId, ItemId, ItemTier, Price, RootItemId, StartingItem, Type, itemIcon_URL, ret_msg):
+        self.ActiveFlag = ActiveFlag
+        self.ChildItemId = ChildItemId
+        self.DeviceName = DeviceName
+        self.Glyph = Glyph
+        self.IconId = IconId
+        self.ItemId = ItemId
+        self.ItemTier = ItemTier
+        self.Price = Price
+        self.RootItemId = RootItemId
+        self.StartingItem = StartingItem
+        self.Type = Type
+        self.itemIcon_URL = itemIcon_URL
+        self.ret_msg = ret_msg
+        self.image = self.fetch_image(itemIcon_URL)
+        #print()
+        
+    def fetch_image(self, url):
+        response = requests.get(url)
+        if response.status_code == 200:
+            return response.content
+        else:
+            print(f"Failed to fetch the image. {self.DeviceName}: {url}")
+            
+    def __str__(self):
+        return f"Item: {self.DeviceName} (ID: {self.ItemId}) - Price: {self.Price}"
 
 
 
