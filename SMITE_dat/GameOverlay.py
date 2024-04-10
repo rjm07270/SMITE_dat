@@ -167,53 +167,63 @@ class GameOverlay(QtWidgets.QWidget):
         #print("saving")
         self.find_rectangle_by_border_color(screenshot)
         
-    def find_rectangle_by_border_color(self, image_cv):
-        # Ensure image_cv is a numpy array
-        
-        np_image = np.array(pil_image).copy()
-
-        # Check if image_cv is empty
-        if image_cv is None or image_cv.size == 0:
+    def find_rectangle_by_border_color(self, pil_image):
+        # Check if pil_image is empty
+        if pil_image is None:
             raise ValueError("The image is empty or not loaded correctly.")
-        
+
+        # Convert the PIL Image to a NumPy array
+        image_cv = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+
         # RGB color to search for (as provided earlier)
         target_rgb_color = (190, 133, 81)
 
         # Convert the RGB color to BGR color format (OpenCV uses BGR)
         target_bgr_color = target_rgb_color[::-1]
-    
+
         # Set a threshold for color matching
         # You may need to adjust this if your color match needs to be more or less strict
         threshold = 10
 
         # Create a mask where the color matches
-        min_bgr_color = np.array([max(target_bgr_color[0]-threshold, 0), 
-                                  max(target_bgr_color[1]-threshold, 0), 
-                                  max(target_bgr_color[2]-threshold, 0)])
-        max_bgr_color = np.array([min(target_bgr_color[0]+threshold, 255), 
-                                  min(target_bgr_color[1]+threshold, 255), 
-                                  min(target_bgr_color[2]+threshold, 255)])
-    
+        min_bgr_color = np.array([max(target_bgr_color[0]-threshold, 0),
+                                   max(target_bgr_color[1]-threshold, 0),
+                                   max(target_bgr_color[2]-threshold, 0)])
+        max_bgr_color = np.array([min(target_bgr_color[0]+threshold, 255),
+                                   min(target_bgr_color[1]+threshold, 255),
+                                   min(target_bgr_color[2]+threshold, 255)])
+
         # Find the color within the specified threshold
-        color_mask = cv2.inRange(np_image, min_bgr_color, max_bgr_color)
-    
+        color_mask = cv2.inRange(image_cv, min_bgr_color, max_bgr_color)
+
         # Use the mask to extract the contour/rectangle
         # You can use cv2.findContours to find the contours of the rectangles
         contours, _ = cv2.findContours(color_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Assuming you want to find the largest rectangle by area
         largest_area = 0
         largest_rectangle = None
+
         for cnt in contours:
             x, y, w, h = cv2.boundingRect(cnt)
             area = w * h
-            if area > largest_area:
-                largest_area = area
-                largest_rectangle = (x, y, w, h)
-    
-        # Now largest_rectangle contains the x, y, width, and height of the largest rectangle found
-        # with a border color that matches the RGB value specified
-        print(largest_rectangle) 
+
+            # Check if the rectangle meets the size criteria
+            if w >= 20 and h >=21  and w <= 21 and h <= 21:
+                if area > largest_area:
+                    largest_area = area
+                    largest_rectangle = (x, y, w, h)
+
+                # Draw a red rectangle on the image
+                cv2.rectangle(image_cv, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+        # Print the coordinates of the largest rectangle
+        print(largest_rectangle)
+
+        # Display the image with rectangles drawn
+        cv2.imshow('Image with Rectangles', image_cv)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
         return largest_rectangle
         
 
